@@ -1,5 +1,6 @@
 use crate::Hash;
-use blake2b_simd::State as Blake2bState;
+use blake3::Hasher as Blake3Hasher;
+use num::traits::real::Real;
 
 const BLOCK_HASH_DOMAIN: &[u8] = b"BlockHash";
 
@@ -10,7 +11,7 @@ pub(super) struct PowHasher([u64; 25]);
 pub(super) struct HeavyHasher;
 
 #[derive(Clone)]
-pub struct HeaderHasher(Blake2bState);
+pub struct HeaderHasher(Blake3Hasher);
 
 impl PowHasher {
     // The initial state of `cSHAKE256("ProofOfWorkHash")`
@@ -68,7 +69,10 @@ impl HeavyHasher {
 impl HeaderHasher {
     #[inline(always)]
     pub fn new() -> Self {
-        Self(blake2b_simd::Params::new().hash_length(32).key(BLOCK_HASH_DOMAIN).to_state())
+        let mut key = [42u8; 32];
+        key = [66, 108, 111, 99, 107, 72, 97, 115, 104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let mut hasher = Blake3Hasher::new_keyed(&key);
+        Self(hasher)
     }
 
     pub fn write<A: AsRef<[u8]>>(&mut self, data: A) {
@@ -77,7 +81,7 @@ impl HeaderHasher {
 
     #[inline(always)]
     pub fn finalize(self) -> Hash {
-        Hash::from_le_bytes(self.0.finalize().as_bytes().try_into().expect("this is 32 bytes"))
+        Hash::from_le_bytes(self.0.finalize().as_bytes().clone().try_into().expect("this is 32 bytes"))
     }
 }
 
@@ -94,6 +98,7 @@ impl Hasher for HeaderHasher {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
     use crate::pow::hasher::{HeavyHasher, PowHasher};
     use crate::Hash;
     use sha3::digest::{ExtendableOutput, Update, XofReader};
@@ -110,13 +115,18 @@ mod tests {
         let hasher = PowHasher::new(pre_pow_hash, timestamp);
         let hash1 = hasher.finalize_with_nonce(nonce);
 
-        let hasher = CShake256::new(PROOF_OF_WORK_DOMAIN)
-            .chain(pre_pow_hash.to_le_bytes())
-            .chain(timestamp.to_le_bytes())
-            .chain([0u8; 32])
-            .chain(nonce.to_le_bytes());
+        let mut hasher = blake3::Hasher::new();
+        let a1 = unsafe { std::mem::transmute(pre_pow_hash.to_le_bytes()) };
+        let a2 = unsafe { std::mem::transmute(timestamp.to_le_bytes()) };
+        let a3 = unsafe { std::mem::transmute([0u8; 32]) };
+        let a4 = unsafe { std::mem::transmute(nonce.to_le_bytes()) };
+        hasher.write(a1);
+        hasher.write(a2);
+        hasher.write(a3);
+        hasher.write(a4);
+
         let mut hash2 = [0u8; 32];
-        hasher.finalize_xof().read(&mut hash2);
+        hasher.finalize_xof().fill(&mut hash2);
         assert_eq!(Hash::from_le_bytes(hash2), hash1);
     }
 
@@ -125,9 +135,12 @@ mod tests {
         let val = Hash::from_le_bytes([42; 32]);
         let hash1 = HeavyHasher::hash(val);
 
-        let hasher = CShake256::new(HEAVY_HASH_DOMAIN).chain(val.to_le_bytes());
+        let mut hasher = blake3::Hasher::new();
+        let bytes = unsafe { std::mem::transmute(val.to_le_bytes()) };
+        hasher.write(bytes);
+
         let mut hash2 = [0u8; 32];
-        hasher.finalize_xof().read(&mut hash2);
+        hasher.finalize_xof().fill(&mut hash2);
         assert_eq!(Hash::from_le_bytes(hash2), hash1);
     }
 }

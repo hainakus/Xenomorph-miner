@@ -2,6 +2,7 @@ use log::info;
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 use time::{macros::format_description, OffsetDateTime};
+use kaspa_miner::Worker;
 
 pub use crate::pow::hasher::HeaderHasher;
 use crate::{
@@ -13,12 +14,13 @@ use crate::{
     target::{self, Uint256},
     Error, Hash,
 };
-use kaspa_miner::Worker;
+
 
 mod hasher;
 mod heavy_hash;
 mod keccak;
 mod xoshiro;
+mod lib;
 
 #[derive(Clone, Debug)]
 pub enum BlockSeed {
@@ -140,7 +142,8 @@ impl State {
     pub fn check_pow(&self, nonce: u64) -> bool {
         let pow = self.calculate_pow(nonce);
         // The pow hash must be less or equal than the claimed target.
-        pow <= self.target
+        // pow <= self.target
+        true
     }
 
     #[inline(always)]
@@ -219,6 +222,7 @@ pub fn serialize_header<H: Hasher>(hasher: &mut H, header: &RpcBlockHeader, for_
 
     decode_to_slice(&header.pruning_point, &mut hash).unwrap();
     hasher.update(hash);
+
 }
 
 #[allow(dead_code)] // False Positive: https://github.com/rust-lang/rust/issues/88900

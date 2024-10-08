@@ -31,6 +31,7 @@ once_cell = "1"
 num_cpus = "1"
 rand = "0.8"
 blake2b_simd = "1.0.0"
+blake3 = "1.5.4"
 clap = { version = "3.0", features = ["color", "derive"]}
 log = "0.4"
 env_logger = "0.9"
@@ -50,7 +51,8 @@ nix = "0.25"
 hex = "0.4"
 semver = "1.0"
 time = { version = "0.3", features = ["formatting", "macros"] }
-
+faster-hex = "0.10.0"
+num-bigint = "0.4"
 [features]
 default = ["parking_lot"]
 parking_lot = ["parking", "tokio/parking_lot"]
