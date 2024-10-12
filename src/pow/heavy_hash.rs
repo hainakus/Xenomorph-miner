@@ -1,9 +1,15 @@
+use kaspa_hashes::{KHeavyHash, HASH_SIZE};
 use crate::pow::{hasher::HeavyHasher, xoshiro::XoShiRo256PlusPlus};
-use crate::Hash;
+
 use std::mem::MaybeUninit;
 
+
+
+#[derive(Eq, Clone, Copy, Default, PartialOrd, Ord)]
+
+pub struct Hash([u8; HASH_SIZE]);
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Matrix(pub [[u16; 64]; 64]);
+pub struct Matrix([[u16; 64]; 64]);
 
 impl Matrix {
     // pub fn generate(hash: Hash) -> Self {
@@ -51,7 +57,7 @@ impl Matrix {
 
     #[inline(always)]
     fn convert_to_float(&self) -> [[f64; 64]; 64] {
-        // SAFETY: An uninitialized MaybrUninit is always safe.
+        // SAFETY: An uninitialized MaybeUninit is always safe.
         let mut out: [[MaybeUninit<f64>; 64]; 64] = unsafe { MaybeUninit::uninit().assume_init() };
 
         out.iter_mut().zip(self.0.iter()).for_each(|(out_row, mat_row)| {
@@ -99,12 +105,11 @@ impl Matrix {
     }
 
     pub fn heavy_hash(&self, hash: Hash) -> Hash {
-        let hash = hash.to_le_bytes();
         // SAFETY: An uninitialized MaybrUninit is always safe.
         let mut vec: [MaybeUninit<u8>; 64] = unsafe { MaybeUninit::uninit().assume_init() };
-        for i in 0..32 {
-            vec[2 * i].write(hash[i] >> 4);
-            vec[2 * i + 1].write(hash[i] & 0x0F);
+        for (i, element) in hash.as_bytes().into_iter().enumerate() {
+            vec[2 * i].write(element >> 4);
+            vec[2 * i + 1].write(element & 0x0F);
         }
         // SAFETY: The loop above wrote into all indexes.
         let vec: [u8; 64] = unsafe { std::mem::transmute(vec) };
@@ -121,8 +126,8 @@ impl Matrix {
         });
 
         // Concatenate 4 LSBs back to 8 bit xor with sum1
-        product.iter_mut().zip(hash).for_each(|(p, h)| *p ^= h);
-        HeavyHasher::hash(Hash::from_le_bytes(product))
+        product.iter_mut().zip(hash.as_bytes()).for_each(|(p, h)| *p ^= h);
+        KHeavyHash::hash(Hash::from_le_bytes(product))
     }
 }
 
@@ -321,7 +326,7 @@ mod benches {
 
     use self::test::{black_box, Bencher};
     use super::{Matrix, XoShiRo256PlusPlus};
-    use crate::Hash;
+
     use rand::{thread_rng, Rng};
 
     #[bench]

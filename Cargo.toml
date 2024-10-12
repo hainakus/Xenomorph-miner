@@ -1,5 +1,5 @@
 [package]
-name = "kaspa-miner"
+name = "xenomorph-miner"
 version = "0.2.1-GPU-0.7"
 edition = "2021"
 license = "MIT/Apache-2.0"
@@ -22,6 +22,7 @@ include = [
 ]
 
 [dependencies]
+kaspa-miner = "0.2.5"
 tonic = "0.8"
 tokio = { version = "1.17", features = ["macros", "rt-multi-thread"] }
 prost = "0.11"
@@ -45,14 +46,25 @@ serde_repr = "0.1"
 serde =  {version="1.0", features=["derive"]}
 futures = "0.3.21"
 bytes = "1.1.0"
-async-trait = "0.1"
+async-trait = "0.1.83"
 num = "0.4"
-nix = "0.25"
+nix = "0.29.0"
 hex = "0.4"
 semver = "1.0"
 time = { version = "0.3", features = ["formatting", "macros"] }
 faster-hex = "0.10.0"
 num-bigint = "0.4"
+async-stream = "0.3.6"
+async-executor = "1.13.1"
+kaspa-hashes = { version = "0.15.2", git = "https://github.com/hainakus/Xenomorph.git", branch = "main" }
+kaspa-pow = { version = "0.15.2", git = "https://github.com/hainakus/Xenomorph.git", branch = "main" }
+kaspa-rpc-core = { version = "0.15.2", git = "https://github.com/hainakus/Xenomorph.git", branch = "main" }
+kaspa-grpc-core = { version = "0.15.2", git = "https://github.com/hainakus/Xenomorph.git", branch = "main" }
+kaspa-grpc-client = { version = "0.15.2", git = "https://github.com/hainakus/Xenomorph.git", branch = "main" }
+kaspa-p2p-lib = { version = "0.15.2", git = "https://github.com/hainakus/Xenomorph.git", branch = "main" }
+kaspa-consensus-core = { version = "0.15.2", git = "https://github.com/hainakus/Xenomorph.git", branch = "main" }
+
+
 [features]
 default = ["parking_lot"]
 parking_lot = ["parking", "tokio/parking_lot"]
@@ -77,5 +89,4 @@ time = { version = "0.3", features = ["formatting"] }
 sha3 = { git = "https://github.com/elichai/hashes", branch = "cSHAKE" }
 
 [workspace]
-members = ["plugins/*"]
-default-members = [".", "plugins/cuda", "plugins/opencl"]
+
